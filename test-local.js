@@ -1,24 +1,23 @@
-// 🚀 Airsoft AR Battle - Advanced PvP Server dengan Anti-Cheat
-// Real-time multiplayer dengan GPS tracking, human detection, dan shooting mechanics
+// 🧪 Local Testing Script untuk Airsoft AR Battle Backend
+// Test server local sebelum deployment ke Railway
 
-const express = require("express");
-const http = require("http");
-const cors = require("cors");
-const helmet = require("helmet");
-const compression = require("compression");
-const rateLimit = require("express-rate-limit");
-const cron = require("node-cron");
-const winston = require("winston");
+const express = require('express');
+const http = require('http');
+const cors = require('cors');
+const helmet = require('helmet');
+const compression = require('compression');
+const rateLimit = require('express-rate-limit');
+const winston = require('winston');
 
 // Import custom modules
-const database = require("./config/database");
-const antiCheat = require("./middleware/antiCheat");
-const GameSocketManager = require("./websocket/gameSocket");
+const database = require('./config/database');
+const antiCheat = require('./middleware/antiCheat');
+const GameSocketManager = require('./websocket/gameSocket');
 
 // Import routes
-const gpsTrackingRoutes = require("./routes/gpsTracking");
-const humanDetectionRoutes = require("./routes/humanDetection");
-const shootingMechanicsRoutes = require("./routes/shootingMechanics");
+const gpsTrackingRoutes = require('./routes/gpsTracking');
+const humanDetectionRoutes = require('./routes/humanDetection');
+const shootingMechanicsRoutes = require('./routes/shootingMechanics');
 
 const app = express();
 const server = http.createServer(app);
@@ -71,30 +70,11 @@ const logger = winston.createLogger({
   ),
   defaultMeta: { service: 'airsoft-ar-backend' },
   transports: [
-    new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
-    new winston.transports.File({ filename: 'logs/combined.log' })
+    new winston.transports.Console({
+      format: winston.format.simple()
+    })
   ]
 });
-
-if (process.env.NODE_ENV !== 'production') {
-  logger.add(new winston.transports.Console({
-    format: winston.format.simple()
-  }));
-}
-
-// Game state for real-time PvP
-const gameState = {
-  players: new Map(),
-  teams: {
-    red: { players: [], maxPlayers: 999, score: 0 },
-    blue: { players: [], maxPlayers: 999, score: 0 }
-  },
-  rooms: new Map(),
-  leaderboard: [],
-  gameMode: 'deathmatch',
-  roundTime: 600, // 10 minutes
-  battleStatus: 'active'
-};
 
 // Health check endpoint
 app.get("/", (req, res) => {
@@ -116,7 +96,7 @@ app.get("/", (req, res) => {
       gps: "/api/gps/*",
       detection: "/api/detection/*",
       shooting: "/api/shooting/*",
-      websocket: "ws://server:port"
+      websocket: "ws://localhost:3001"
     }
   });
 });
@@ -250,26 +230,6 @@ app.get("/api/shooting/weapons", (req, res) => {
   }
 });
 
-// Database cleanup endpoint
-app.post("/api/admin/cleanup", (req, res) => {
-  try {
-    database.cleanupOldData();
-    antiCheat.cleanup();
-    
-    res.json({
-      success: true,
-      message: 'Database cleanup completed',
-      timestamp: new Date().toISOString()
-    });
-  } catch (error) {
-    logger.error('Database cleanup error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error during database cleanup'
-    });
-  }
-});
-
 // Error handling middleware
 app.use((err, req, res, next) => {
   logger.error('Unhandled error:', err);
@@ -290,62 +250,28 @@ app.use((req, res) => {
       'GET /api/players',
       'GET /api/status',
       'GET /api/anti-cheat/status',
-      'POST /api/admin/cleanup',
-      'WebSocket: ws://server:port'
+      'GET /api/shooting/weapons',
+      'WebSocket: ws://localhost:3001'
     ]
   });
 });
 
-// Scheduled tasks
-cron.schedule('0 */6 * * *', () => {
-  // Cleanup every 6 hours
-  try {
-    database.cleanupOldData();
-    antiCheat.cleanup();
-    logger.info('Scheduled cleanup completed');
-  } catch (error) {
-    logger.error('Scheduled cleanup error:', error);
-  }
-});
-
-cron.schedule('*/5 * * * *', () => {
-  // Log server stats every 5 minutes
-  const activeConnections = gameSocket.getActiveConnections();
-  logger.info('Server stats', {
-    activePlayers: activeConnections.size,
-    suspiciousActivities: antiCheat.suspiciousActivities.size,
-    uptime: process.uptime()
-  });
-});
-
-// Graceful shutdown
-process.on('SIGTERM', () => {
-  logger.info('SIGTERM received, shutting down gracefully');
-  server.close(() => {
-    logger.info('Server closed');
-    process.exit(0);
-  });
-});
-
-process.on('SIGINT', () => {
-  logger.info('SIGINT received, shutting down gracefully');
-  server.close(() => {
-    logger.info('Server closed');
-    process.exit(0);
-  });
-});
-
 // Start server
-const PORT = process.env.PORT || 3001;
+const PORT = 3001;
 server.listen(PORT, () => {
-  logger.info(`🚀 Airsoft AR Battle Advanced PvP Server running on port ${PORT}`);
-  logger.info(`🌐 Server URL: http://localhost:${PORT}`);
-  logger.info(`🔌 WebSocket URL: ws://localhost:${PORT}`);
-  logger.info(`🛡️ Anti-Cheat System: ACTIVE`);
-  logger.info(`📍 GPS Tracking: ENABLED`);
-  logger.info(`👥 Human Detection: ENABLED`);
-  logger.info(`🔫 Shooting Mechanics: ENABLED`);
-  logger.info(`💕 Real PvP Mode: NO AI/BOTS - HUMANS ONLY`);
+  console.log(`🚀 Airsoft AR Battle Local Test Server running on port ${PORT}`);
+  console.log(`🌐 Server URL: http://localhost:${PORT}`);
+  console.log(`🔌 WebSocket URL: ws://localhost:${PORT}`);
+  console.log(`🛡️ Anti-Cheat System: ACTIVE`);
+  console.log(`📍 GPS Tracking: ENABLED`);
+  console.log(`👥 Human Detection: ENABLED`);
+  console.log(`🔫 Shooting Mechanics: ENABLED`);
+  console.log(`💕 Real PvP Mode: NO AI/BOTS - HUMANS ONLY`);
+  console.log(`\n🧪 Testing endpoints:`);
+  console.log(`   Health: http://localhost:${PORT}/`);
+  console.log(`   Players: http://localhost:${PORT}/api/players`);
+  console.log(`   Weapons: http://localhost:${PORT}/api/shooting/weapons`);
+  console.log(`   Anti-Cheat: http://localhost:${PORT}/api/anti-cheat/status`);
 });
 
 module.exports = { app, server, gameSocket }; 
